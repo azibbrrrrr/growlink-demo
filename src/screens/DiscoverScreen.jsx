@@ -201,7 +201,7 @@ const DiscoverScreen = ({ onNav, onQuickPeek, saved, onToggleSave }) => {
           <div style={{ height: 16 }} />
         </div>
       )}
-      {view === "list" && <BottomNav active="disc" onNav={onNav} unread={unread} />}
+      <BottomNav active="disc" onNav={onNav} unread={unread} />
     </div>
   );
 };

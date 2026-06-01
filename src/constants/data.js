@@ -16,6 +16,19 @@ export const STUDENT = {
   bookings:    6,
   spent:       890,
   following:   3,
+  emergencyContact: { name: "Nur Aina", phone: "+60 13-555 0198" },
+  loyalty: {
+    tier: "Achiever",
+    points: 245,
+    lessons: 15,
+    nextTier: "Champion",
+    lessonsToNext: 55,
+    perks: ["5% discount on all bookings", "Priority support"],
+  },
+  savedSearches: [
+    { id: 1, name: "Piano teachers under RM 60", summary: "Music · Physical · under RM 60 · 5 km", alerts: true },
+    { id: 2, name: "Online Math tutors", summary: "Academic · Online · 4.5+ rating", alerts: false },
+  ],
 };
 
 export const TEACHERS = [
@@ -134,3 +147,57 @@ export const CHAT_HISTORY = [
   { from: "me",   text: "Perfect, I have been practising! See you Monday.",                                    time: "10:09 AM", read: true },
   { from: "them", text: "See you Monday! Please bring your music sheets.",                                     time: "10:10 AM", read: true },
 ];
+
+export const MATERIALS = {
+  1: {
+    homework: "Practice this before next session: bars 1-16 at 60 BPM",
+    files: [
+      { id: 1, name: "Chopin Nocturne Sheet.pdf", date: "28 Feb 2026", type: "pdf" },
+      { id: 2, name: "Lesson 3 Notes.jpg", date: "26 Feb 2026", type: "image" },
+      { id: 3, name: "Practice Guide.pdf", date: "24 Feb 2026", type: "pdf" },
+    ],
+  },
+  4: {
+    homework: "Revise simultaneous equations and bring two worked examples.",
+    files: [
+      { id: 1, name: "IGCSE Algebra Drill.pdf", date: "1 Mar 2026", type: "pdf" },
+      { id: 2, name: "Formula Sheet.pdf", date: "24 Feb 2026", type: "pdf" },
+      { id: 3, name: "Paper 1 Corrections.jpg", date: "18 Feb 2026", type: "image" },
+    ],
+  },
+};
+
+export const PROGRESS = {
+  1: {
+    teacher: "Sarah Lim Xin Yi",
+    skill: "Piano",
+    goal: "Pass ABRSM Grade 5 by June 2026",
+    goalProgress: 64,
+    streak: { current: 5, longest: 12 },
+    skills: [
+      { name: "C Major Scale", done: true },
+      { name: "Proper posture", done: true },
+      { name: "Sight reading", done: true },
+      { name: "Left-hand arpeggios", done: false },
+      { name: "Exam piece dynamics", done: false },
+    ],
+    practice: [20, 35, 0, 45, 30, 55, 40],
+    report: { lessons: 4, hours: 8, mastered: 3 },
+  },
+  4: {
+    teacher: "Ali Imran Roslan",
+    skill: "Mathematics",
+    goal: "Raise IGCSE mock score to A by June 2026",
+    goalProgress: 72,
+    streak: { current: 4, longest: 9 },
+    skills: [
+      { name: "Quadratic equations", done: true },
+      { name: "Trigonometry basics", done: true },
+      { name: "Graph transformations", done: true },
+      { name: "Probability trees", done: false },
+      { name: "Timed paper strategy", done: false },
+    ],
+    practice: [30, 25, 45, 20, 50, 35, 60],
+    report: { lessons: 8, hours: 12, mastered: 3 },
+  },
+};

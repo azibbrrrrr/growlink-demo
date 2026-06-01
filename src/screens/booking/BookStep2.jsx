@@ -23,10 +23,13 @@ const BookStep2 = ({ teacher: t, booking, onNext, onBack }) => {
   const [feeOpen, setFeeOpen] = useState(false);
 
   const MAX       = 200;
-  const deposit   = Math.round(booking.pkg.price * 0.25);
-  const platFee   = Math.round(booking.pkg.price * 0.05);
+  const lessonSubtotal = booking.pkg.price * (booking.recurring ? booking.recurWeeks : 1);
+  const recurringDiscount = booking.recurring ? Math.round(lessonSubtotal * 0.05) : 0;
+  const discountedLessons = lessonSubtotal - recurringDiscount;
+  const deposit   = Math.round((discountedLessons + (booking.mode?.includes("Student") ? 10 : 0)) * 0.25);
+  const platFee   = Math.round(discountedLessons * 0.05);
   const transport = booking.mode?.includes("Student") ? 10 : 0;
-  const total     = booking.pkg.price + platFee + transport;
+  const total     = discountedLessons + platFee + transport;
 
   const pay = () => {
     setPaying(true);
@@ -68,14 +71,14 @@ const BookStep2 = ({ teacher: t, booking, onNext, onBack }) => {
             </div>
             {feeOpen && (
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
-                {[["Teacher", t.name], ["Package", booking.pkg.name], ["Mode", booking.mode], ["Date", `${booking.date?.d}, Mar ${booking.date?.n}`], ["Time", booking.time]].map(([k, v]) => (
+                {[["Teacher", t.name], ["Package", booking.pkg.name], booking.recurring ? ["Repeat", `Weekly for ${booking.recurWeeks} weeks`] : null, ["Mode", booking.mode], ["Date", `${booking.date?.d}, Mar ${booking.date?.n}`], ["Time", booking.time]].filter(Boolean).map(([k, v]) => (
                   <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
                     <span style={{ fontSize: 10, color: T.gray500 }}>{k}</span>
                     <span style={{ fontSize: 10, fontWeight: 600, color: T.gray900 }}>{v}</span>
                   </div>
                 ))}
                 <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 8, marginTop: 8 }}>
-                  {[["Lesson Fee", `RM ${booking.pkg.price}`], ["Platform Fee (5%)", `RM ${platFee}`], transport ? ["Transport Fee", `RM ${transport}`] : null, ["Total Amount", `RM ${total}`]].filter(Boolean).map(([k, v]) => (
+                  {[["Lesson Fee", `RM ${lessonSubtotal}`], booking.recurring ? ["Recurring Discount (5%)", `-RM ${recurringDiscount}`] : null, ["Platform Fee (5%)", `RM ${platFee}`], transport ? ["Transport Fee", `RM ${transport}`] : null, ["Total Amount", `RM ${total}`]].filter(Boolean).map(([k, v]) => (
                     <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
                       <span style={{ fontSize: 10, color: T.gray500 }}>{k}</span>
                       <span style={{ fontSize: 10, fontWeight: 700, color: T.gray900 }}>{v}</span>

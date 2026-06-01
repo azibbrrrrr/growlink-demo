@@ -125,6 +125,16 @@ const QuickPeekSheet = ({ teacher: t, saved, onToggleSave, onClose, onBook, onFu
           </span>
         </div>
 
+        {t.mode.includes("Physical") && (
+          <div style={{ background: T.amberL, border: `1px solid ${T.amber}35`, borderRadius: 12, padding: "9px 11px", marginBottom: 14, display: "flex", gap: 9 }}>
+            <Icon n="shield" s={14} c={T.amberD} />
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 900, color: T.gray900 }}>First lesson tip</div>
+              <div style={{ fontSize: 9, color: T.gray600, lineHeight: 1.4 }}>Consider a public venue for your first physical lesson.</div>
+            </div>
+          </div>
+        )}
+
         {/* CTAs */}
         <button
           onClick={() => { close(); setTimeout(() => onBook(t, t.pkgs[1]), 320); }}

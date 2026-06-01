@@ -167,7 +167,7 @@ const isOnlineOnly = (t) => t.mode.length === 1 && t.mode[0] === "Online";
 
 // ── HomeScreen ───────────────────────────────────────────────────
 
-const HomeScreen = ({ userState = "C", onNav, onProfile, onChangeUser, saved: savedProp, onToggleSave, onQuickPeek, onQuickBook }) => {
+const HomeScreen = ({ userState = "C", onNav, onProfile, onChangeUser, saved: savedProp, onToggleSave, onQuickPeek, onQuickBook, onCompare, compareList = [], onSaveSearch }) => {
   const [cat,        setCat]        = useState("All");
   const [subcat,     setSubcat]     = useState("All");
   const [sort,       setSort]       = useState("distance");
@@ -193,12 +193,14 @@ const HomeScreen = ({ userState = "C", onNav, onProfile, onChangeUser, saved: sa
   const [fRating,       setFRating]       = useState(0);
   const [fMode,         setFMode]         = useState("all");
   const [fAvail,        setFAvail]        = useState("any");
+  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
+  const [saveSearchName, setSaveSearchName] = useState("Piano teachers under RM 60");
+  const [toast, setToast] = useState("");
 
   // Applied filter badge count
   const filterCount = (fIntent !== "all" ? 1 : 0) + fCats.length + (fPriceMax < 200 ? 1 : 0) + (fDistMax < 15 ? 1 : 0) + (fRating > 0 ? 1 : 0) + (fMode !== "all" ? 1 : 0) + (fAvail !== "any" ? 1 : 0);
 
   useEffect(() => {
-    setLoading(true);
     const t = setTimeout(() => setLoading(false), 900);
     return () => clearTimeout(t);
   }, [userState]);
@@ -245,6 +247,12 @@ const HomeScreen = ({ userState = "C", onNav, onProfile, onChangeUser, saved: sa
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   const resetFilters = () => { setFIntent("all"); setFCats([]); setFPriceMax(200); setFDistMax(15); setFRating(0); setFMode("all"); setFAvail("any"); };
+  const saveSearch = () => {
+    onSaveSearch?.(saveSearchName || "Saved teacher search");
+    setToast("Search saved! You'll be alerted when new teachers match.");
+    setSaveSearchOpen(false);
+    setTimeout(() => setToast(""), 2200);
+  };
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
@@ -281,7 +289,7 @@ const HomeScreen = ({ userState = "C", onNav, onProfile, onChangeUser, saved: sa
               <>
                 <div style={{ fontSize: 11, fontWeight: 700, color: T.gray400, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>Recent Searches</div>
                 {RECENT_SEARCHES.map((s, i) => (
-                  <button key={i} onClick={() => setSearchQuery(s)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 0", borderBottom: `1px solid ${T.border}`, background: "none", border: "none", borderBottom: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left" }}>
+                  <button key={i} onClick={() => setSearchQuery(s)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "11px 0", background: "none", border: "none", borderBottom: `1px solid ${T.border}`, cursor: "pointer", textAlign: "left" }}>
                     <Icon n="clk" s={14} c={T.gray300} />
                     <span style={{ fontSize: 13, color: T.gray700 }}>{s}</span>
                     <Icon n="chev" s={13} c={T.gray200} style={{ marginLeft: "auto" }} />
@@ -345,6 +353,10 @@ const HomeScreen = ({ userState = "C", onNav, onProfile, onChangeUser, saved: sa
       )}
 
       {/* ── Filter bottom sheet ────────────────────────────────── */}
+      {toast && (
+        <div style={{ position: "absolute", left: 18, right: 18, top: 42, zIndex: 360, background: T.gray900, color: T.white, borderRadius: 13, padding: "11px 13px", fontSize: 11, fontWeight: 800, boxShadow: "0 10px 30px rgba(0,0,0,0.22)" }}>{toast}</div>
+      )}
+
       {showFilter && (
         <div style={{ position: "absolute", inset: 0, zIndex: 200, display: "flex", alignItems: "flex-end" }}>
           <div onClick={() => setShowFilter(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} />
@@ -445,8 +457,17 @@ const HomeScreen = ({ userState = "C", onNav, onProfile, onChangeUser, saved: sa
 
             {/* Apply button */}
             <div style={{ padding: "12px 16px 20px", borderTop: `1px solid ${T.border}`, flexShrink: 0 }}>
+              {saveSearchOpen && (
+                <div style={{ marginBottom: 10, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 12, padding: 10 }}>
+                  <div style={{ fontSize: 10, color: T.gray500, fontWeight: 800, marginBottom: 6 }}>Saved search name</div>
+                  <input value={saveSearchName} onChange={(e) => setSaveSearchName(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${T.border}`, background: T.card, borderRadius: 10, padding: "9px 10px", color: T.gray900, fontSize: 11, outline: "none", fontFamily: "inherit" }} />
+                </div>
+              )}
               <button onClick={() => setShowFilter(false)} style={{ width: "100%", background: T.p600, border: "none", borderRadius: 12, padding: "13px 0", fontSize: 13, fontWeight: 800, color: "white", cursor: "pointer" }}>
                 Apply Filters{filterCount > 0 ? ` · ${filterCount} active` : ""}
+              </button>
+              <button onClick={() => saveSearchOpen ? saveSearch() : setSaveSearchOpen(true)} style={{ width: "100%", background: "none", border: `1.5px solid ${T.border}`, borderRadius: 12, padding: "11px 0", fontSize: 12, fontWeight: 800, color: T.p700, cursor: "pointer", marginTop: 8 }}>
+                Save this search
               </button>
             </div>
           </div>
@@ -697,6 +718,9 @@ const HomeScreen = ({ userState = "C", onNav, onProfile, onChangeUser, saved: sa
                   <button onClick={(e) => { e.stopPropagation(); onToggleSave(t.id); }} style={{ position: "absolute", top: 7, left: 7, width: 22, height: 22, borderRadius: 11, background: "rgba(0,0,0,0.25)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon n="heart" s={11} c={saved.has(t.id) ? "#f87171" : "rgba(255,255,255,0.9)"} fill={saved.has(t.id) ? "#f87171" : "none"} />
                   </button>
+                  <button onClick={(e) => { e.stopPropagation(); onCompare?.(t); }} style={{ position: "absolute", bottom: 7, right: 7, background: compareList.includes(t.id) ? T.p600 : "rgba(255,255,255,0.9)", border: "none", borderRadius: 8, padding: "3px 6px", fontSize: 8, fontWeight: 900, color: compareList.includes(t.id) ? "white" : T.p700 }}>
+                    Compare
+                  </button>
                 </div>
                 <div style={{ padding: "10px 11px 12px" }}>
                   <div style={{ fontSize: 11, fontWeight: 800, color: T.gray900, lineHeight: 1.2 }}>{t.name}</div>
@@ -754,6 +778,9 @@ const HomeScreen = ({ userState = "C", onNav, onProfile, onChangeUser, saved: sa
                     {onlineOnly ? `${t.avgResponse} reply` : `${t.dist} km`}
                   </div>
                   <div style={{ marginTop: 2 }}><Stars rating={t.rating} size={9} /></div>
+                  <button onClick={(e) => { e.stopPropagation(); onCompare?.(t); }} style={{ marginTop: 5, background: compareList.includes(t.id) ? T.p600 : T.p100, border: "none", borderRadius: 8, padding: "4px 7px", fontSize: 8, fontWeight: 900, color: compareList.includes(t.id) ? "white" : T.p700 }}>
+                    Compare
+                  </button>
                 </div>
               </Card>
             );

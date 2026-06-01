@@ -1,54 +1,79 @@
 import { useState } from "react";
-import { T } from "./constants/tokens";
-import { MSGS } from "./constants/data";
+import { STUDENT, TEACHERS } from "./constants/data";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 
 // Screens
+import OnboardingScreen from "./screens/OnboardingScreen";
 import UserSelectScreen from "./screens/UserSelectScreen";
-import HomeScreen      from "./screens/HomeScreen";
-import DiscoverScreen  from "./screens/DiscoverScreen";
-import BookingsScreen  from "./screens/BookingsScreen";
-import ActivityScreen  from "./screens/ActivityScreen";
-import MessagesScreen  from "./screens/MessagesScreen";
-import ChatScreen      from "./screens/ChatScreen";
-import TeacherProfile  from "./screens/TeacherProfile";
-import ProfileScreen   from "./screens/ProfileScreen";
-import BookStep1       from "./screens/booking/BookStep1";
-import BookStep2       from "./screens/booking/BookStep2";
-import BookStep3       from "./screens/booking/BookStep3";
+import HomeScreen       from "./screens/HomeScreen";
+import DiscoverScreen   from "./screens/DiscoverScreen";
+import BookingsScreen   from "./screens/BookingsScreen";
+import ActivityScreen   from "./screens/ActivityScreen";
+import MessagesScreen   from "./screens/MessagesScreen";
+import ChatScreen       from "./screens/ChatScreen";
+import TeacherProfile   from "./screens/TeacherProfile";
+import ProfileScreen    from "./screens/ProfileScreen";
+import ProgressScreen   from "./screens/ProgressScreen";
+import CompareScreen    from "./screens/CompareScreen";
+import BookStep1        from "./screens/booking/BookStep1";
+import BookStep2        from "./screens/booking/BookStep2";
+import BookStep3        from "./screens/booking/BookStep3";
 
 // Overlays
-import QuickPeekSheet  from "./components/overlays/QuickPeekSheet";
+import QuickPeekSheet   from "./components/overlays/QuickPeekSheet";
+import CompareBar       from "./components/overlays/CompareBar";
 
-export default function GrowlinkStudentApp() {
+function AppInner() {
+  const { T } = useTheme();
+
+  // Onboarding
+  const [onboarded,  setOnboarded]  = useState(false);
+
   // User state selector (null = show selector screen)
-  const [userState, setUserState] = useState(null);
+  const [userState,  setUserState]  = useState(null);
 
   // Navigation state
-  const [screen,   setScreen]   = useState("home");
+  const [screen,     setScreen]     = useState("home");
 
   // Saved teachers
-  const [saved,    setSaved]    = useState(new Set());
+  const [saved,      setSaved]      = useState(new Set());
+
+  // Compare list (max 3 teachers)
+  const [compareList, setCompareList] = useState([]);
+  const [savedSearches, setSavedSearches] = useState(STUDENT.savedSearches || []);
 
   // Teacher & booking flow state
-  const [selT,     setSelT]     = useState(null);
-  const [bookT,    setBookT]    = useState(null);
-  const [bookStep, setBookStep] = useState(1);
-  const [bookData, setBookData] = useState({});
-  const [initPkg,  setInitPkg]  = useState(null);
+  const [selT,       setSelT]       = useState(null);
+  const [bookT,      setBookT]      = useState(null);
+  const [bookStep,   setBookStep]   = useState(1);
+  const [bookData,   setBookData]   = useState({});
+  const [initPkg,    setInitPkg]    = useState(null);
+  const [teacherTab, setTeacherTab]  = useState("about");
+
+  // Progress screen
+  const [progressBooking, setProgressBooking] = useState(null);
 
   // Overlays
-  const [quickPeek, setQuickPeek] = useState(null);
-  const [chatC,     setChatC]     = useState(null);
+  const [quickPeek,  setQuickPeek]  = useState(null);
+  const [chatC,      setChatC]      = useState(null);
 
   // ── Actions ─────────────────────────────────────────────────
-  const toggleSave  = (id) => setSaved((s) => {
+  const toggleSave = (id) => setSaved((s) => {
     const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
 
-  const openTeacher = (t) => { setSelT(t); setQuickPeek(null); setScreen("teacher"); };
+  const toggleCompare = (teacher) => {
+    setCompareList((prev) => {
+      if (prev.includes(teacher.id)) return prev.filter((id) => id !== teacher.id);
+      if (prev.length >= 3) return prev;
+      return [...prev, teacher.id];
+    });
+  };
+
+  const openTeacher = (t) => { setSelT(t); setTeacherTab("about"); setQuickPeek(null); setScreen("teacher"); };
   const openPeek    = (t) => setQuickPeek(t);
 
-  const startBook   = (t, pkg) => {
+  const startBook = (t, pkg) => {
     setBookT(t); setInitPkg(pkg); setBookData({}); setBookStep(1);
     setQuickPeek(null); setScreen("booking");
   };
@@ -57,7 +82,18 @@ export default function GrowlinkStudentApp() {
     setScreen(dest); setSelT(null); setBookT(null); setBookStep(1); setBookData({});
   };
 
-  const unread = MSGS.reduce((s, m) => s + m.unread, 0);
+  const openProgress = (booking) => { setProgressBooking(booking); setScreen("prog"); };
+  const openMaterials = (booking) => {
+    const teacher = TEACHERS.find((t) => t.name === booking.teacher) || TEACHERS[0];
+    setSelT(teacher);
+    setTeacherTab("materials");
+    setScreen("teacher");
+  };
+  const addSavedSearch = (name) => {
+    setSavedSearches((items) => [{ id: Date.now(), name, summary: "Custom filters · alerts on", alerts: true }, ...items]);
+  };
+  const deleteSavedSearch = (id) => setSavedSearches((items) => items.filter((s) => s.id !== id));
+  const toggleSearchAlert = (id) => setSavedSearches((items) => items.map((s) => s.id === id ? { ...s, alerts: !s.alerts } : s));
 
   // ── Render ───────────────────────────────────────────────────
   return (
@@ -119,70 +155,119 @@ export default function GrowlinkStudentApp() {
             />
           )}
 
-          {/* ── Profile ── */}
-          {screen === "profile" && (
-            <ProfileScreen onBack={() => setScreen("home")} />
+          {/* ── Onboarding ── */}
+          {!onboarded && (
+            <OnboardingScreen onDone={() => setOnboarded(true)} />
           )}
 
-          {/* ── Booking flow (3 steps) ── */}
-          {screen === "booking" && bookStep === 1 && (
-            <BookStep1
-              teacher={bookT}
-              initPkg={initPkg}
-              onBack={() => setScreen(selT ? "teacher" : "home")}
-              onNext={(d) => { setBookData(d); setBookStep(2); }}
-            />
-          )}
-          {screen === "booking" && bookStep === 2 && (
-            <BookStep2
-              teacher={bookT}
-              booking={bookData}
-              onBack={() => setBookStep(1)}
-              onNext={(d) => { setBookData(d); setBookStep(3); }}
-            />
-          )}
-          {screen === "booking" && bookStep === 3 && (
-            <BookStep3 teacher={bookT} booking={bookData} onDone={goHome} />
-          )}
+          {/* ── Post-onboarding screens ── */}
+          {onboarded && (
+            <>
+              {/* ── Profile ── */}
+              {screen === "profile" && (
+                <ProfileScreen
+                  onBack={() => setScreen("home")}
+                  savedSearches={savedSearches}
+                  onDeleteSearch={deleteSavedSearch}
+                  onToggleSearchAlert={toggleSearchAlert}
+                />
+              )}
 
-          {/* ── Teacher profile ── */}
-          {screen === "teacher" && selT && (
-            <TeacherProfile
-              teacher={selT}
-              onBack={() => setScreen("disc")}
-              onBook={startBook}
-              saved={saved}
-              onToggleSave={toggleSave}
-            />
-          )}
+              {/* ── Progress ── */}
+              {screen === "prog" && (
+                <ProgressScreen booking={progressBooking} onBack={() => setScreen("bkgs")} />
+              )}
 
-          {/* ── Main screens ── */}
-          {screen === "home" && !userState && (
-            <UserSelectScreen onSelect={(s) => { setUserState(s); setScreen("home"); }} />
+              {/* ── Compare ── */}
+              {screen === "compare" && (
+                <CompareScreen
+                  compareList={compareList}
+                  onBack={() => setScreen("disc")}
+                  onBook={(t) => startBook(t, t.pkgs[0])}
+                  onRemove={(id) => setCompareList((list) => list.filter((x) => x !== id))}
+                />
+              )}
+
+              {/* ── Booking flow (3 steps) ── */}
+              {screen === "booking" && bookStep === 1 && (
+                <BookStep1
+                  teacher={bookT}
+                  initPkg={initPkg}
+                  onBack={() => setScreen(selT ? "teacher" : "home")}
+                  onNext={(d) => { setBookData(d); setBookStep(2); }}
+                />
+              )}
+              {screen === "booking" && bookStep === 2 && (
+                <BookStep2
+                  teacher={bookT}
+                  booking={bookData}
+                  onBack={() => setBookStep(1)}
+                  onNext={(d) => { setBookData(d); setBookStep(3); }}
+                />
+              )}
+              {screen === "booking" && bookStep === 3 && (
+                <BookStep3 teacher={bookT} booking={bookData} onDone={goHome} />
+              )}
+
+              {/* ── Teacher profile ── */}
+              {screen === "teacher" && selT && (
+                <TeacherProfile
+                  teacher={selT}
+                  onBack={() => setScreen("disc")}
+                  onBook={startBook}
+                  saved={saved}
+                  onToggleSave={toggleSave}
+                  initialTab={teacherTab}
+                  onCompare={toggleCompare}
+                  compareList={compareList}
+                />
+              )}
+
+              {/* ── Main screens ── */}
+              {screen === "home" && !userState && (
+                <UserSelectScreen onSelect={(s) => { setUserState(s); setScreen("home"); }} />
+              )}
+              {screen === "home" && userState && (
+                <HomeScreen
+                  userState={userState}
+                  onNav={setScreen}
+                  onProfile={() => setScreen("profile")}
+                  onChangeUser={() => { setUserState(null); setScreen("home"); }}
+                  saved={saved}
+                  onToggleSave={toggleSave}
+                  onQuickPeek={openPeek}
+                  onQuickBook={(t) => startBook(t, t.pkgs[1])}
+                  onCompare={toggleCompare}
+                  compareList={compareList}
+                  onSaveSearch={addSavedSearch}
+                />
+              )}
+              {screen === "disc" && (
+                <DiscoverScreen
+                  onNav={setScreen}
+                  onQuickPeek={openPeek}
+                  saved={saved}
+                  onToggleSave={toggleSave}
+                  compareList={compareList}
+                  onToggleCompare={toggleCompare}
+                />
+              )}
+              {screen === "bkgs" && (
+                <BookingsScreen onNav={setScreen} onProgress={openProgress} onOpenMaterials={openMaterials} />
+              )}
+              {screen === "act"  && <ActivityScreen onNav={setScreen} />}
+              {screen === "msgs" && <MessagesScreen onNav={setScreen} onChat={(c) => setChatC(c)} />}
+
+              {/* Compare bar — floats above bottom nav when comparing */}
+              {compareList.length > 0 && screen !== "compare" && (
+                <CompareBar
+                  compareList={compareList}
+                  onCompare={() => setScreen("compare")}
+                  onClear={() => setCompareList([])}
+                />
+              )}
+            </>
           )}
-          {screen === "home" && userState && (
-            <HomeScreen
-              userState={userState}
-              onNav={setScreen}
-              onProfile={() => setScreen("profile")}
-              onChangeUser={() => { setUserState(null); setScreen("home"); }}
-              saved={saved}
-              onToggleSave={toggleSave}
-              onQuickPeek={openPeek}
-              onQuickBook={(t) => startBook(t, t.pkgs[1])}
-            />
-          )}
-          {screen === "disc" && (
-            <DiscoverScreen
-              onNav={setScreen}
-              onQuickPeek={openPeek}
-              saved={saved}
-              onToggleSave={toggleSave}
-            />
-          )}
-          {screen === "bkgs" && <BookingsScreen onNav={setScreen} />}
-          {screen === "act"  && <ActivityScreen onNav={setScreen} />}
-          {screen === "msgs" && <MessagesScreen onNav={setScreen} onChat={(c) => setChatC(c)} />}
         </div>
       </div>
 
@@ -199,5 +284,13 @@ export default function GrowlinkStudentApp() {
         Growlink · Student Workspace · v2.0
       </div>
     </div>
+  );
+}
+
+export default function GrowlinkStudentApp() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
   );
 }

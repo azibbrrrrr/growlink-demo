@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { T, GRAD } from "../constants/tokens";
+import { useTheme } from "../contexts/ThemeContext";
 import { TEACHERS, MSGS } from "../constants/data";
 import { CATEGORIES } from "../constants/navigation";
 import Icon from "../components/icons/Icon";
 import { Avatar, Card, Pill, Stars, GradientHeader, EmptyState } from "../components/primitives";
 import BottomNav from "../components/navigation/BottomNav";
 
-const DiscoverScreen = ({ onNav, onQuickPeek, saved, onToggleSave }) => {
+const DiscoverScreen = ({ onNav, onQuickPeek, saved, onToggleSave, compareList = [], onToggleCompare }) => {
+  const { T, GRAD } = useTheme();
   const [view, setView] = useState("map");
   const [sel, setSel] = useState(null);
   const [search, setSearch] = useState("");
@@ -140,7 +141,10 @@ const DiscoverScreen = ({ onNav, onQuickPeek, saved, onToggleSave }) => {
                     <div style={{ fontSize: 9, color: T.gray400 }}>/ hour</div>
                   </div>
                 </div>
-                <button onClick={() => onQuickPeek(sel)} style={{ width: "100%", background: GRAD, border: "none", borderRadius: 12, padding: "12px", fontSize: 12, fontWeight: 800, color: "white", cursor: "pointer", marginBottom: 14, boxShadow: `0 4px 14px ${T.p600}40` }}>View & Book</button>
+                <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                  <button onClick={() => onToggleCompare?.(sel)} style={{ flex: 1, background: compareList.includes(sel.id) ? T.p600 : T.p100, border: "none", borderRadius: 12, padding: "12px", fontSize: 11, fontWeight: 800, color: compareList.includes(sel.id) ? "white" : T.p700, cursor: "pointer" }}>Compare</button>
+                  <button onClick={() => onQuickPeek(sel)} style={{ flex: 2, background: GRAD, border: "none", borderRadius: 12, padding: "12px", fontSize: 12, fontWeight: 800, color: "white", cursor: "pointer", boxShadow: `0 4px 14px ${T.p600}40` }}>View & Book</button>
+                </div>
               </div>
             ) : (
               <div>
@@ -190,10 +194,15 @@ const DiscoverScreen = ({ onNav, onQuickPeek, saved, onToggleSave }) => {
               <div style={{ textAlign: "right", flexShrink: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 900, color: T.p600 }}>RM {t.price}</div>
                 <div style={{ fontSize: 9, color: T.gray400 }}>/hour</div>
-                <div style={{ marginTop: 5 }}>
+                <div style={{ marginTop: 5, display: "flex", gap: 4, justifyContent: "flex-end" }}>
                   <button onClick={(e) => { e.stopPropagation(); onToggleSave(t.id); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
                     <Icon n="heart" s={14} c={saved.has(t.id) ? T.red : T.gray300} fill={saved.has(t.id) ? T.red : "none"} />
                   </button>
+                  {onToggleCompare && (
+                    <button onClick={(e) => { e.stopPropagation(); onToggleCompare(t); }} style={{ background: compareList.includes(t.id) ? T.p100 : T.gray50, border: `1px solid ${compareList.includes(t.id) ? T.p300 : T.border}`, borderRadius: 6, padding: "2px 6px", cursor: "pointer", fontSize: 8, fontWeight: 700, color: compareList.includes(t.id) ? T.p700 : T.gray400 }}>
+                      {compareList.includes(t.id) ? "Added" : "Compare"}
+                    </button>
+                  )}
                 </div>
               </div>
             </Card>

@@ -6,11 +6,13 @@ import { ProgressBar } from "../../components/primitives";
 const BookStep3 = ({ teacher: t, booking, onDone }) => {
   const [show,   setShow]   = useState(false);
   const [checks, setChecks] = useState({});
+  const [ref] = useState(() => `GRW-2026-${Math.floor(Math.random() * 90000 + 10000)}`);
 
   useEffect(() => { setTimeout(() => setShow(true), 100); }, []);
 
-  const deposit = Math.round(booking.pkg.price * 0.25);
-  const ref     = `GRW-2026-${Math.floor(Math.random() * 90000 + 10000)}`;
+  const lessonSubtotal = booking.pkg.price * (booking.recurring ? booking.recurWeeks : 1);
+  const recurringDiscount = booking.recurring ? Math.round(lessonSubtotal * 0.05) : 0;
+  const deposit = Math.round((lessonSubtotal - recurringDiscount) * 0.25);
   const isOnline = booking.mode === "Online";
 
   const checkItems = isOnline
@@ -29,9 +31,9 @@ const BookStep3 = ({ teacher: t, booking, onDone }) => {
               <Icon n="tick" s={34} c={T.p600} sw={2.5} />
             </div>
           </div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: "white", marginBottom: 6, letterSpacing: "-0.02em", transform: show ? "translateY(0)" : "translateY(20px)", opacity: show ? 1 : 0, transition: "all .5s .1s ease" }}>Booking Confirmed</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "white", marginBottom: 6, letterSpacing: "-0.02em", transform: show ? "translateY(0)" : "translateY(20px)", opacity: show ? 1 : 0, transition: "all .5s .1s ease" }}>You're in!</div>
           <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.55, transform: show ? "translateY(0)" : "translateY(20px)", opacity: show ? 1 : 0, transition: "all .5s .2s ease" }}>
-            Your lesson with {t.name.split(" ")[0]} is confirmed.<br />RM {deposit} deposit received.
+            {t.name.split(" ")[0]} will see you {booking.date?.d}, Mar {booking.date?.n} at {booking.time}.<br />RM {deposit} held safely. You're confirmed.
           </div>
         </div>
 
@@ -39,7 +41,7 @@ const BookStep3 = ({ teacher: t, booking, onDone }) => {
           {/* Receipt */}
           <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 18, padding: 18, border: "1px solid rgba(255,255,255,0.2)", marginBottom: 16, transform: show ? "translateY(0)" : "translateY(30px)", opacity: show ? 1 : 0, transition: "all .5s .3s ease" }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.5)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>Booking Receipt</div>
-            {[["Teacher", t.name], ["Package", booking.pkg.name], ["Date", `${booking.date?.d}, Mar ${booking.date?.n}, 2026`], ["Time", booking.time], ["Mode", booking.mode], ["Deposit Paid", `RM ${deposit}`], ["Reference", ref]].map(([k, v]) => (
+            {[["Teacher", t.name], ["Package", booking.pkg.name], booking.recurring ? ["Recurring", `Weekly for ${booking.recurWeeks} weeks · 5% off`] : null, ["Date", `${booking.date?.d}, Mar ${booking.date?.n}, 2026`], ["Time", booking.time], ["Mode", booking.mode], ["Deposit Paid", `RM ${deposit}`], ["Reference", ref]].filter(Boolean).map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
                 <span style={{ fontSize: 10, color: "rgba(255,255,255,0.55)" }}>{k}</span>
                 <span style={{ fontSize: 10, fontWeight: 600, color: "white" }}>{v}</span>

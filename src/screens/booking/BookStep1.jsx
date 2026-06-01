@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { T, GRAD } from "../../constants/tokens";
+import { useTheme } from "../../contexts/ThemeContext";
 import Icon from "../../components/icons/Icon";
 import { Avatar, GradientHeader, BackButton } from "../../components/primitives";
 import StepBar from "./StepBar";
@@ -9,18 +9,25 @@ const TIMES = ["9:00 AM", "10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM", "4:00 PM
 const BLOCKED = ["11:00 AM", "3:00 PM"];
 
 const BookStep1 = ({ teacher: t, initPkg, onNext, onBack }) => {
-  const [pkg,  setPkg]  = useState(initPkg || t.pkgs[1]);
-  const [mode, setMode] = useState("Online");
-  const [date, setDate] = useState(null);
-  const [time, setTime] = useState(null);
+  const { T, GRAD } = useTheme();
+  const [pkg,       setPkg]       = useState(initPkg || t.pkgs[1]);
+  const [mode,      setMode]      = useState("Online");
+  const [date,      setDate]      = useState(null);
+  const [time,      setTime]      = useState(null);
+  const [recurring, setRecurring] = useState(false);
+  const [recurWeeks, setRecurWeeks] = useState(4);
 
   const modes = t.mode.includes("Physical")
     ? ["Online", "Physical – Teacher's", "Physical – Student's"]
     : ["Online"];
   const ready = date && time;
 
+  const packageTotal = pkg.price * (recurring ? recurWeeks : 1);
+  const discount = recurring ? Math.round(packageTotal * 0.05) : 0;
+  const finalPrice = packageTotal - discount;
+
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: T.surface }}>
       <GradientHeader>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
           <BackButton onBack={onBack} />
@@ -84,7 +91,7 @@ const BookStep1 = ({ teacher: t, initPkg, onNext, onBack }) => {
 
         {/* Time */}
         <div style={{ fontSize: 12, fontWeight: 800, color: T.gray900, marginBottom: 8 }}>Time Slot</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7, marginBottom: 16 }}>
           {TIMES.map((tm) => {
             const isBlocked = BLOCKED.includes(tm);
             const isSel = time === tm;
@@ -96,12 +103,48 @@ const BookStep1 = ({ teacher: t, initPkg, onNext, onBack }) => {
             );
           })}
         </div>
-        <div style={{ height: 20 }} />
+
+        {/* ── Recurring booking toggle ── */}
+        <div style={{ background: T.card, borderRadius: 14, border: `1px solid ${T.border}`, padding: "12px 14px", marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: recurring ? T.p100 : T.gray50, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: 16 }}>📅</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: T.gray900 }}>Recurring booking</div>
+              <div style={{ fontSize: 10, color: T.gray500 }}>Book every week — 5% discount</div>
+            </div>
+            <button onClick={() => setRecurring((r) => !r)} style={{ width: 44, height: 24, borderRadius: 12, background: recurring ? T.p600 : T.gray200, border: "none", cursor: "pointer", position: "relative", transition: "background .2s", flexShrink: 0 }}>
+              <div style={{ position: "absolute", top: 2, left: recurring ? 22 : 2, width: 20, height: 20, borderRadius: 10, background: "white", transition: "left .2s", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" }} />
+            </button>
+          </div>
+          {recurring && (
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+              <div style={{ fontSize: 11, color: T.gray600, marginBottom: 8 }}>Repeat every week for:</div>
+              <div style={{ display: "flex", gap: 7 }}>
+                {[4, 8].map((w) => (
+                  <button key={w} onClick={() => setRecurWeeks(w)} style={{ flex: 1, padding: "7px", borderRadius: 9, border: `1.5px solid ${recurWeeks === w ? T.p600 : T.border}`, background: recurWeeks === w ? T.p50 : T.surface, cursor: "pointer" }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: recurWeeks === w ? T.p600 : T.gray900 }}>{w} weeks</div>
+                    <div style={{ fontSize: 9, color: T.gray400 }}>{w} sessions</div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginTop: 10, background: T.p50, borderRadius: 9, padding: "8px 12px", display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 11, color: T.p700 }}>Total with 5% discount</span>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: T.p600 }}>RM {finalPrice}</span>
+                  <div style={{ fontSize: 9, color: T.gray400 }}>Save RM {discount}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ height: 8 }} />
       </div>
 
       <div style={{ padding: "10px 16px 14px" }}>
-        <button disabled={!ready} onClick={() => onNext({ pkg, mode, date, time })} style={{ width: "100%", background: ready ? GRAD : "rgba(0,0,0,0.08)", border: "none", borderRadius: 14, padding: 13, fontSize: 13, fontWeight: 800, color: ready ? "white" : T.gray300, cursor: ready ? "pointer" : "not-allowed", transition: "all .2s", boxShadow: ready ? `0 6px 20px ${T.p600}45` : "none" }}>
-          {ready ? "Next: Review & Pay" : "Select date and time to continue"}
+        <button disabled={!ready} onClick={() => onNext({ pkg, mode, date, time, recurring, recurWeeks })} style={{ width: "100%", background: ready ? GRAD : "rgba(0,0,0,0.08)", border: "none", borderRadius: 14, padding: 13, fontSize: 13, fontWeight: 800, color: ready ? "white" : T.gray300, cursor: ready ? "pointer" : "not-allowed", transition: "all .2s", boxShadow: ready ? `0 6px 20px ${T.p600}45` : "none" }}>
+          {ready ? `Next: Review & Pay${recurring ? ` · RM ${finalPrice}` : ""}` : "Select date and time to continue"}
         </button>
       </div>
     </div>

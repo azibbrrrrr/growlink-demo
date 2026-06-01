@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { T, GRAD } from "../constants/tokens";
 import { STUDENT, TEACHERS } from "../constants/data";
+import { useTheme } from "../contexts/ThemeContext";
 import Icon from "../components/icons/Icon";
-import { Avatar, Stars, Divider, GradientHeader, BackButton } from "../components/primitives";
+import { Avatar, Stars, Divider, BackButton } from "../components/primitives";
 
-const Field = ({ icon, label, field, editing, setEditing, data, setData, setSaved }) => {
+const LOYALTY_TIERS = [
+  { name: "Explorer",  min: 1,  icon: "🌱" },
+  { name: "Learner",   min: 5,  icon: "📚" },
+  { name: "Achiever",  min: 15, icon: "🏆" },
+  { name: "Champion",  min: 30, icon: "🥇" },
+];
+
+const Field = ({ icon, label, field, editing, setEditing, data, setData, setSaved, T }) => {
   const isEditing = editing === field;
   return (
     <div>
@@ -20,13 +27,7 @@ const Field = ({ icon, label, field, editing, setEditing, data, setData, setSave
             <div style={{ fontSize: 12, fontWeight: 600, color: T.gray900 }}>{data[field]}</div>
           )}
         </div>
-        <button
-          onClick={() => {
-            if (isEditing) { setEditing(null); setSaved(true); setTimeout(() => setSaved(false), 2000); }
-            else setEditing(field);
-          }}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
-        >
+        <button onClick={() => { if (isEditing) { setEditing(null); setSaved(true); setTimeout(() => setSaved(false), 2000); } else setEditing(field); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
           {isEditing ? <Icon n="chk" s={16} c={T.p600} sw={2.5} /> : <Icon n="edit" s={14} c={T.gray300} />}
         </button>
       </div>
@@ -34,15 +35,25 @@ const Field = ({ icon, label, field, editing, setEditing, data, setData, setSave
   );
 };
 
-const ProfileScreen = ({ onBack }) => {
+const ProfileScreen = ({ onBack, savedSearches: savedSearchesProp, onDeleteSearch, onToggleSearchAlert }) => {
+  const { T, GRAD } = useTheme();
   const [editing, setEditing] = useState(null);
   const [data,    setData]    = useState({ ...STUDENT });
   const [saved,   setSaved]   = useState(false);
+  const [savedSearches, setSavedSearches] = useState(STUDENT.savedSearches || []);
+  const displayedSearches = savedSearchesProp ?? savedSearches;
 
-  const fieldProps = { editing, setEditing, data, setData, setSaved };
+  const fieldProps = { editing, setEditing, data, setData, setSaved, T };
+
+  const loyalty = STUDENT.loyalty;
+  const tierIdx = LOYALTY_TIERS.findIndex((t) => t.name === loyalty.tier);
+  const nextTier = LOYALTY_TIERS[tierIdx + 1];
+  const lessonsForCurrent = LOYALTY_TIERS[tierIdx]?.min || 0;
+  const lessonsForNext    = nextTier?.min || 30;
+  const tierProgress      = Math.min(100, ((loyalty.lessons - lessonsForCurrent) / (lessonsForNext - lessonsForCurrent)) * 100);
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: T.surface }}>
       <div style={{ background: GRAD, padding: "36px 16px 0", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
           <BackButton onBack={onBack} />
@@ -77,6 +88,51 @@ const ProfileScreen = ({ onBack }) => {
 
       <div style={{ flex: 1, overflowY: "auto" }}>
         <div style={{ padding: "10px 16px 6px", fontSize: 10, color: T.gray400 }}>Tap the edit icon on any field to update it.</div>
+
+        {/* ── Loyalty Program ── */}
+        <div style={{ background: T.card, marginBottom: 8, padding: "14px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 18 }}>{LOYALTY_TIERS[tierIdx].icon}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: T.gray900 }}>{loyalty.tier}</div>
+              <div style={{ fontSize: 10, color: T.gray500 }}>{loyalty.points} pts · {loyalty.lessons} lessons</div>
+            </div>
+            <div style={{ background: T.p100, borderRadius: 8, padding: "4px 10px" }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: T.p700 }}>Growlink Loyalty</span>
+            </div>
+          </div>
+          {/* Progress to next tier */}
+          {nextTier && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ fontSize: 10, color: T.gray600 }}>Progress to {nextTier.icon} {nextTier.name}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: T.p600 }}>{loyalty.lessonsToNext} lessons to go</span>
+              </div>
+              <div style={{ height: 6, background: T.gray100, borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${tierProgress}%`, background: GRAD, borderRadius: 3, transition: "width .6s ease" }} />
+              </div>
+            </div>
+          )}
+          {/* Perks */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {loyalty.perks.map((perk, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, background: T.p50, borderRadius: 8, padding: "4px 9px" }}>
+                <Icon n="chk" s={10} c={T.p600} sw={2.5} />
+                <span style={{ fontSize: 10, color: T.p700, fontWeight: 600 }}>{perk}</span>
+              </div>
+            ))}
+          </div>
+          {/* Tier strip */}
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+            {LOYALTY_TIERS.map((tier, i) => (
+              <div key={tier.name} style={{ textAlign: "center", flex: 1 }}>
+                <div style={{ fontSize: 14, marginBottom: 2 }}>{tier.icon}</div>
+                <div style={{ fontSize: 8, fontWeight: i <= tierIdx ? 700 : 400, color: i <= tierIdx ? T.p600 : T.gray300 }}>{tier.name}</div>
+                <div style={{ width: 6, height: 6, borderRadius: 3, background: i <= tierIdx ? T.p600 : T.gray200, margin: "3px auto 0" }} />
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Personal Information */}
         <div style={{ background: T.card, marginBottom: 8 }}>
@@ -122,6 +178,41 @@ const ProfileScreen = ({ onBack }) => {
           </div>
         </div>
 
+        {/* Saved Searches */}
+        <div style={{ background: T.card, marginBottom: 8 }}>
+          <div style={{ padding: "14px 16px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: T.gray900 }}>Saved Searches</div>
+            <span style={{ fontSize: 10, color: T.gray400 }}>{displayedSearches.length} saved</span>
+          </div>
+          <Divider />
+          {displayedSearches.length === 0 ? (
+            <div style={{ padding: "14px 16px", fontSize: 11, color: T.gray400 }}>No saved searches yet. Save a search from the filter panel.</div>
+          ) : displayedSearches.map((ss, i) => (
+            <div key={ss.id}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 16px" }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: T.p50, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Icon n="srch" s={14} c={T.p600} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: T.gray900 }}>{ss.name}</div>
+                  <div style={{ fontSize: 10, color: T.gray500 }}>{ss.summary}</div>
+                </div>
+                <button
+                  onClick={() => onToggleSearchAlert ? onToggleSearchAlert(ss.id) : setSavedSearches((prev) => prev.map((s) => s.id === ss.id ? { ...s, alerts: !s.alerts } : s))}
+                  style={{ background: ss.alerts ? T.p50 : T.gray50, border: `1px solid ${ss.alerts ? T.p200 : T.border}`, borderRadius: 8, padding: "4px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}
+                >
+                  <Icon n="bell" s={11} c={ss.alerts ? T.p600 : T.gray400} />
+                  <span style={{ fontSize: 9, fontWeight: 700, color: ss.alerts ? T.p600 : T.gray400 }}>Alert {ss.alerts ? "on" : "off"}</span>
+                </button>
+                <button onClick={() => onDeleteSearch ? onDeleteSearch(ss.id) : setSavedSearches((prev) => prev.filter((s) => s.id !== ss.id))} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+                  <Icon n="x" s={13} c={T.gray300} />
+                </button>
+              </div>
+              {i < displayedSearches.length - 1 && <Divider />}
+            </div>
+          ))}
+        </div>
+
         {/* Following */}
         <div style={{ background: T.card, marginBottom: 8 }}>
           <div style={{ padding: "14px 16px 10px" }}><div style={{ fontSize: 11, fontWeight: 800, color: T.gray900 }}>Following ({STUDENT.following})</div></div>
@@ -145,7 +236,11 @@ const ProfileScreen = ({ onBack }) => {
         <div style={{ background: T.card, marginBottom: 8 }}>
           <div style={{ padding: "14px 16px 10px" }}><div style={{ fontSize: 11, fontWeight: 800, color: T.gray900 }}>Preferences</div></div>
           <Divider />
-          {[{ icon: "globe", label: "Language", value: data.language }, { icon: "bell", label: "Notifications", value: "All on" }, { icon: "shield", label: "Privacy", value: "Visible to teachers" }].map((r, i) => (
+          {[
+            { icon: "globe",  label: "Language",      value: data.language },
+            { icon: "bell",   label: "Notifications", value: "All on"      },
+            { icon: "shield", label: "Privacy",       value: "Visible to teachers" },
+          ].map((r, i) => (
             <div key={i}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px" }}>
                 <div style={{ width: 32, height: 32, borderRadius: 9, background: T.gray50, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}><Icon n={r.icon} s={15} c={T.gray400} /></div>
